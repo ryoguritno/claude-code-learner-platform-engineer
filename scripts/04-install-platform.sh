@@ -30,6 +30,16 @@ if [[ -n "${GITHUB_ORG:-}" ]]; then
         "${REPO_ROOT}/platform/argocd/apps/platform-apps.yaml" 2>/dev/null || true
 fi
 
+echo "→ Installing kube-prometheus-stack via Helm (managed outside ArgoCD)..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update 2>/dev/null || true
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+    --namespace monitoring \
+    --version 55.5.0 \
+    -f "${REPO_ROOT}/platform/monitoring/prometheus/values.yaml" \
+    --set prometheus-node-exporter.hostRootFsMount.enabled=false \
+    --timeout 10m \
+    --wait
+
 echo "→ Applying App-of-Apps..."
 kubectl apply -f "${REPO_ROOT}/platform/argocd/apps/app-of-apps.yaml"
 
