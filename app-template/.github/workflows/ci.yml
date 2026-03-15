@@ -1,0 +1,111 @@
+name: CI — Build, Test, Scan, Push
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+
+env:
+  HARBOR_URL: harbor.local.dev
+  HARBOR_PROJECT: "{{TEAM}}"
+  APP_NAME: "{{APP_NAME}}"
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-scan:
+    name: Build, Test, Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pip install pytest pytest-asyncio httpx
+          python -m pytest tests/ -v --tb=short
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false  # Don't push yet — scan first
+          tags: ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+          load: true   # Load into local Docker for scanning
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ env.IMAGE_TAG }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL
+          ignore-unfixed: true
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+          artifact-name: sbom.spdx.json
+
+      - name: Scan SBOM with Grype
+        uses: anchore/scan-action@v3
+        with:
+          sbom: sbom.spdx.json
+          fail-build: true
+          severity-cutoff: critical
+
+      - name: Push image to Harbor
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            sbom.spdx.json
+          retention-days: 30
+
+      - name: Output image tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+          echo "✓ Image pushed: ${{ env.HARBOR_URL }}/${{ env.HARBOR_PROJECT }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"

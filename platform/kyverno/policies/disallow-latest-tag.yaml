@@ -1,0 +1,56 @@
+---
+# Kyverno Policy: Disallow :latest image tag in staging and prod namespaces
+# The :latest tag is not reproducible — you can't roll back to a specific version.
+# Allowed in *-dev namespaces for convenience.
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Image Tag
+    policies.kyverno.io/category: Platform Standards
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      The ':latest' tag is mutable and not reproducible. Using it means you
+      cannot roll back to a specific version. Required in staging and prod.
+      Dev namespaces are exempt.
+spec:
+  validationFailureAction: audit  # Change to 'enforce' in production
+
+  background: true
+
+  rules:
+    - name: disallow-latest-in-staging-prod
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaceSelector:
+                matchExpressions:
+                  - key: kubernetes.io/metadata.name
+                    operator: In
+                    values:
+                      # This pattern approach doesn't work for dynamic names
+                      # In production: use a proper namespace label like env: staging
+                      - "staging"
+                      - "prod"
+              namespaces:
+                # Match namespaces ending in -staging or -prod
+                - "*-staging"
+                - "*-prod"
+      validate:
+        message: "Images must not use ':latest' tag in staging or prod namespaces. Use a specific version."
+        foreach:
+          - list: "request.object.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Contains
+                    value: ":latest"
+                  - key: "{{ element.image }}"
+                    operator: NotContains
+                    value: ":"

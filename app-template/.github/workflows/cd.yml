@@ -1,0 +1,75 @@
+name: CD — Update Helm Values
+
+on:
+  workflow_run:
+    workflows: ["CI — Build, Test, Scan, Push"]
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  APP_NAME: "{{APP_NAME}}"
+
+jobs:
+  update-image-tag:
+    name: Update image tag in Helm values
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get image tag from CI run
+        id: get-tag
+        run: |
+          # The image tag is the commit SHA that triggered CI
+          IMAGE_TAG=${{ github.event.workflow_run.head_sha }}
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Updating to image tag: ${IMAGE_TAG}"
+
+      - name: Set up yq
+        uses: mikefarah/yq@master
+
+      - name: Update image tag in Helm values
+        run: |
+          IMAGE_TAG=${{ steps.get-tag.outputs.IMAGE_TAG }}
+
+          # Update base values.yaml
+          yq eval ".image.tag = \"${IMAGE_TAG}\"" -i helm/values.yaml
+
+          # Update version label
+          yq eval ".podLabels[\"app.kubernetes.io/version\"] = \"${IMAGE_TAG}\"" -i helm/values.yaml
+
+          echo "Updated helm/values.yaml with image.tag: ${IMAGE_TAG}"
+
+      - name: Commit and push
+        run: |
+          git config --local user.email "ci@platform.local"
+          git config --local user.name "Platform CI"
+
+          git add helm/values.yaml
+          git diff --staged --quiet || git commit -m "chore: update image tag to ${{ steps.get-tag.outputs.IMAGE_TAG }}"
+          git push
+
+      - name: Notify ArgoCD
+        # Optional: trigger immediate sync instead of waiting for polling
+        if: ${{ vars.ARGOCD_SERVER != '' }}
+        run: |
+          # Install ArgoCD CLI
+          curl -sSL -o /tmp/argocd \
+            https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /tmp/argocd
+
+          # Login and sync
+          /tmp/argocd login ${{ vars.ARGOCD_SERVER }} \
+            --username admin \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --insecure
+
+          /tmp/argocd app sync ${{ env.APP_NAME }}-dev || true
+          echo "✓ ArgoCD sync triggered for ${{ env.APP_NAME }}-dev"

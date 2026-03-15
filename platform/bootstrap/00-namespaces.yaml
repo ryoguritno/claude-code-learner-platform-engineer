@@ -1,0 +1,91 @@
+---
+# Platform namespaces — applied before ArgoCD App-of-Apps
+# These namespaces must exist before components are installed
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: harbor
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: harbor
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: vault
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minio
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: minio
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nats
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: nats
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: monitoring
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: ingress-nginx
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: cert-manager
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: kyverno
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openfaas
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: openfaas
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openfaas-fn
+  labels:
+    app.kubernetes.io/managed-by: platform-bootstrap
+    kubernetes.io/metadata.name: openfaas-fn

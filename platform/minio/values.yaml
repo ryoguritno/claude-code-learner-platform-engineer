@@ -1,0 +1,54 @@
+# MinIO Helm values
+
+mode: standalone
+
+rootUser: "admin"
+rootPassword: "minio-secret-key"
+
+persistence:
+  enabled: true
+  size: 20Gi
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  hosts:
+    - minio.local.dev
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - minio.local.dev
+
+consoleIngress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - minio-console.local.dev
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - minio-console.local.dev
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Prometheus metrics
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+
+# Default buckets created on startup
+defaultBuckets: "platform-artifacts"
+
+# Lifecycle
+environment:
+  MINIO_BROWSER_REDIRECT_URL: "https://minio-console.local.dev"

@@ -1,0 +1,37 @@
+---
+# Platform-critical: ArgoCD, ingress-nginx, cert-manager
+# These must schedule even under resource pressure
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: platform-critical
+value: 1000000
+globalDefault: false
+description: "Platform control plane components (ArgoCD, ingress, cert-manager)"
+---
+# Platform-high: Vault, Prometheus
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: platform-high
+value: 100000
+globalDefault: false
+description: "High-priority platform services (Vault, Prometheus)"
+---
+# Platform-medium: Harbor, MinIO, NATS, Grafana, Loki
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: platform-medium
+value: 10000
+globalDefault: false
+description: "Standard platform services"
+---
+# Application default: all tenant apps
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: app-default
+value: 1000
+globalDefault: true
+description: "Default priority for tenant applications"

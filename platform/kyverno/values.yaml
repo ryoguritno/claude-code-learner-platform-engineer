@@ -1,0 +1,46 @@
+# Kyverno Helm values
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Prometheus metrics
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+
+# Exclude platform namespaces from policies
+# (Platform components don't always follow app standards)
+config:
+  excludeGroupRole:
+    - system:nodes
+    - system:masters
+  excludeUsername:
+    - ""
+
+  # Namespaces excluded from ALL policies
+  # Add platform namespaces so they don't need to follow app policies
+  resourceFiltersExcludeNamespaces:
+    - kube-system
+    - kube-public
+    - kube-node-lease
+    - argocd
+    - cert-manager
+    - ingress-nginx
+    - kyverno
+
+# Background scanning: validate existing resources periodically
+backgroundScan: true
+backgroundScanWorkers: 2
+backgroundScanInterval: "1h"
+
+# Audit mode: log violations but don't block (for learning)
+# Change to "enforce" to actually block non-compliant resources
+validationFailureAction: audit

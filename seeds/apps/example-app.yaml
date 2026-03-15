@@ -1,0 +1,61 @@
+apiVersion: platform.local.dev/v1
+kind: SeedApplication
+metadata:
+  name: example-app
+  labels:
+    team: platform
+    environment: dev
+spec:
+  name: example-app
+  team: platform
+  language: python
+  description: "Example application demonstrating the Seeds workflow"
+
+  repository:
+    organization: YOUR_GITHUB_ORG
+    visibility: private
+    branch_protection: true
+    topics:
+      - platform
+      - example
+
+  infrastructure:
+    namespace: example-app
+    environments:
+      - dev
+      - staging
+      - prod
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+  scaling:
+    min_replicas: 1
+    max_replicas: 5
+    target_cpu_utilization: 70
+
+  storage:
+    enabled: true
+    bucket_name: example-app-data
+
+  messaging:
+    enabled: true
+    stream_name: EXAMPLE_EVENTS
+    subjects:
+      - example.created
+      - example.updated
+      - example.deleted
+
+  secrets:
+    enabled: true
+    vault_path: secret/example-app/config
+
+  ingress:
+    enabled: true
+    host: example-app.local.dev
+    tls: true

@@ -1,0 +1,65 @@
+# Grafana Helm values (standalone, if not using kube-prometheus-stack)
+# For the local platform, Grafana is bundled with kube-prometheus-stack
+# This file is for reference / standalone deployment
+
+adminPassword: "prom-operator"
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - grafana.local.dev
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - grafana.local.dev
+
+persistence:
+  enabled: false
+
+sidecar:
+  dashboards:
+    enabled: true
+    searchNamespace: ALL
+    label: grafana_dashboard
+  datasources:
+    enabled: true
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://kube-prometheus-stack-prometheus:9090
+        isDefault: true
+        access: proxy
+      - name: Loki
+        type: loki
+        url: http://loki:3100
+        access: proxy
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: platform
+        orgId: 1
+        folder: Platform
+        type: file
+        disableDeletion: false
+        options:
+          path: /var/lib/grafana/dashboards/platform
+
+dashboards:
+  platform:
+    platform-overview:
+      file: dashboards/platform-overview.json
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"

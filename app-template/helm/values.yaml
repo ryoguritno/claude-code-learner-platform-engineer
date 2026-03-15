@@ -1,0 +1,130 @@
+# Default values for {{APP_NAME}}
+# Override in values-dev.yaml, values-staging.yaml, values-prod.yaml
+
+appName: "{{APP_NAME}}"
+team: "{{TEAM}}"
+
+replicaCount: 1
+
+image:
+  repository: harbor.local.dev/{{TEAM}}/{{APP_NAME}}
+  tag: "latest"  # CI pipeline overrides with commit SHA
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# Ingress — exposes app at https://{{APP_NAME}}.local.dev
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: "{{APP_NAME}}.local.dev"
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - "{{APP_NAME}}.local.dev"
+
+# Resource limits — required by Kyverno policy
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Vault secret injection
+vault:
+  enabled: true
+  role: "{{APP_NAME}}"
+  secretPath: "{{VAULT_PATH}}"
+
+# Service account (created by tofu/modules/k8s-namespace)
+serviceAccount:
+  create: false  # tofu creates it
+  name: "{{APP_NAME}}"
+
+# Pod annotations for Vault injection
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/role: "{{APP_NAME}}"
+  vault.hashicorp.com/agent-inject-secret-config: "{{VAULT_PATH}}"
+  vault.hashicorp.com/agent-inject-template-config: |
+    {{- with secret "{{VAULT_PATH}}" -}}
+    {{- range $k, $v := .Data.data }}
+    export {{ $k }}="{{ $v }}"
+    {{- end }}
+    {{- end }}
+
+# Standard labels — required by Kyverno policy
+podLabels:
+  app.kubernetes.io/name: "{{APP_NAME}}"
+  app.kubernetes.io/version: "0.1.0"  # CD pipeline updates this
+  team: "{{TEAM}}"
+
+# Environment variables (non-secret)
+env:
+  - name: APP_VERSION
+    value: "0.1.0"
+  - name: ENVIRONMENT
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+
+# Prometheus ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  path: /metrics
+  additionalLabels:
+    release: kube-prometheus-stack
+
+# Node affinity — spread across nodes
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: "{{APP_NAME}}"

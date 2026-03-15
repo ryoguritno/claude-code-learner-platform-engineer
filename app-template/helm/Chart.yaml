@@ -1,0 +1,16 @@
+apiVersion: v2
+name: {{APP_NAME}}
+description: {{APP_DESCRIPTION}}
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - {{TEAM}}
+  - {{APP_NAME}}
+home: https://github.com/{{GITHUB_ORG}}/{{APP_NAME}}
+maintainers:
+  - name: {{TEAM}}
+    url: https://github.com/{{GITHUB_ORG}}
+annotations:
+  platform.local.dev/team: "{{TEAM}}"
+  platform.local.dev/managed-by: "seed-processor"

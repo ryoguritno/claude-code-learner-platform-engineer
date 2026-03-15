@@ -1,0 +1,83 @@
+# ArgoCD Helm values for local platform
+
+global:
+  image:
+    tag: "v2.9.3"
+
+configs:
+  params:
+    # Disable TLS on ArgoCD server (handled by ingress-nginx)
+    server.insecure: "true"
+  cm:
+    # Sync every 3 minutes
+    timeout.reconciliation: 180s
+    # Allow repos without credentials (for public repos)
+    resource.compareoptions: |
+      ignoreAggregatedRoles: true
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, get, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, projects, *, *, allow
+      g, admin, role:admin
+
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    hosts:
+      - argocd.local.dev
+    tls:
+      - secretName: local-dev-wildcard-tls
+        hosts:
+          - argocd.local.dev
+
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+controller:
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+repoServer:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+redis:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"

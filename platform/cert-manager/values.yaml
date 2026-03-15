@@ -1,0 +1,38 @@
+# cert-manager Helm values
+
+installCRDs: true
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "10m"
+    memory: "32Mi"
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+
+# Prometheus metrics
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    prometheusInstance: kube-prometheus-stack
+
+webhook:
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      cpu: "100m"
+      memory: "64Mi"
+
+cainjector:
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"

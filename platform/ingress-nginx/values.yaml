@@ -1,0 +1,49 @@
+# ingress-nginx Helm values for k3d
+
+controller:
+  # Use DaemonSet for local dev (ensures it runs on every node)
+  kind: DaemonSet
+
+  service:
+    type: LoadBalancer
+    # k3d ServiceLB will forward these ports
+    ports:
+      http: 80
+      https: 443
+
+  # Allow on all nodes including control-plane
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+
+  # Enable Prometheus metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
+
+  config:
+    # Large body for image pushes via Harbor
+    proxy-body-size: "0"
+    # Better error pages
+    custom-http-errors: "404,503"
+    # Enable real IP from client
+    use-forwarded-headers: "true"
+    compute-full-forwarded-for: "true"
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  admissionWebhooks:
+    enabled: true

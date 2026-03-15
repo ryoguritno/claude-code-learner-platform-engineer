@@ -1,0 +1,82 @@
+# Harbor Helm values for local platform
+
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: local-dev-wildcard-tls
+  ingress:
+    hosts:
+      core: harbor.local.dev
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"  # Unlimited for image pushes
+
+externalURL: https://harbor.local.dev
+
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    registry:
+      size: 20Gi
+    database:
+      size: 2Gi
+    redis:
+      size: 1Gi
+
+harborAdminPassword: "Harbor12345"
+
+# Enable Trivy vulnerability scanning
+trivy:
+  enabled: true
+  ignoreUnfixed: true
+  skipUpdate: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# Core service
+core:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# Registry
+registry:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# JobService
+jobservice:
+  maxJobWorkers: 5
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack

@@ -1,0 +1,149 @@
+name: Seed Processor
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'seeds/apps/**.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'seeds/apps/**.yaml'
+
+concurrency:
+  group: seed-processor-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel seed processing
+
+jobs:
+  validate:
+    name: Validate Seeds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need HEAD~1 to detect changed files
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml jsonschema
+
+      - name: Validate changed seed files
+        run: |
+          # Find changed seed files
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'seeds/apps/*.yaml')
+          if [ -z "$CHANGED" ]; then
+            echo "No seed files changed"
+            exit 0
+          fi
+
+          echo "Validating: $CHANGED"
+          for file in $CHANGED; do
+            python3 -c "
+          import json, yaml, jsonschema, sys
+          schema = json.load(open('seeds/schema/seed.schema.json'))
+          seed = yaml.safe_load(open('$file'))
+          try:
+              jsonschema.validate(seed, schema)
+              print(f'✓ {sys.argv[0] if sys.argv[0] != \"-c\" else \"$file\"} is valid')
+          except jsonschema.ValidationError as e:
+              print(f'✗ $file: {e.message}')
+              sys.exit(1)
+          "
+          done
+
+  process:
+    name: Process Seeds
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: platform  # Requires environment protection rules
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install pyyaml jsonschema PyGithub
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: '1.6.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > ~/.kube/config
+          kubectl cluster-info
+
+      - name: Configure Vault CLI
+        run: |
+          wget -q https://releases.hashicorp.com/vault/1.15.0/vault_1.15.0_linux_amd64.zip
+          unzip -q vault_1.15.0_linux_amd64.zip
+          sudo mv vault /usr/local/bin/vault
+
+      - name: Run seed processor
+        env:
+          GITHUB_TOKEN: ${{ secrets.PLATFORM_GITHUB_TOKEN }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          HARBOR_URL: ${{ secrets.HARBOR_URL }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          cd seeds/processor
+          python3 main.py
+
+      - name: Verify ArgoCD applications
+        run: |
+          # Wait for ArgoCD to register the new apps
+          sleep 30
+
+          # Check all new apps are registered
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'seeds/apps/*.yaml')
+          for file in $CHANGED; do
+            APP_NAME=$(python3 -c "import yaml; print(yaml.safe_load(open('$file'))['spec']['name'])")
+            echo "Checking ArgoCD app: ${APP_NAME}-dev"
+            kubectl get application "${APP_NAME}-dev" -n argocd \
+              && echo "✓ ${APP_NAME}-dev exists" \
+              || echo "✗ ${APP_NAME}-dev not found"
+          done
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Seed validation passed. Will be processed on merge to main.'
+            })

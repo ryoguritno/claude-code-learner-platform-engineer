@@ -1,0 +1,73 @@
+# Loki Stack Helm values (includes Promtail)
+
+loki:
+  enabled: true
+  isDefault: false
+  persistence:
+    enabled: true
+    size: 10Gi
+  config:
+    auth_enabled: false
+    ingester:
+      chunk_idle_period: 3m
+      chunk_block_size: 262144
+      chunk_retain_period: 1m
+      max_transfer_retries: 0
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      retention_period: 168h  # 7 days
+    schema_config:
+      configs:
+        - from: "2020-10-24"
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /data/loki/index
+        cache_location: /data/loki/index_cache
+        shared_store: filesystem
+      filesystem:
+        directory: /data/loki/chunks
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+promtail:
+  enabled: true
+  config:
+    logLevel: info
+    serverPort: 3101
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+  # Scrape all pod logs
+  pipelineStages:
+    - docker: {}
+    - match:
+        selector: '{app=~".+"}'
+        stages:
+          - json:
+              expressions:
+                level: level
+                msg: msg
+          - labels:
+              level:
+
+grafana:
+  enabled: false  # Managed by kube-prometheus-stack

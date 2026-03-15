@@ -1,0 +1,56 @@
+# NATS JetStream Helm values
+
+nats:
+  image:
+    tag: "2.10.7-alpine"
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+  jetstream:
+    enabled: true
+    memStorage:
+      enabled: true
+      size: "1Gi"
+    fileStorage:
+      enabled: true
+      size: "5Gi"
+      storageClassName: ""  # Use default storage class
+
+  cluster:
+    enabled: false  # Single node for local dev; set true for HA
+
+  # Prometheus metrics via NATS Surveyor or built-in
+  exporter:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
+
+  logging:
+    debug: false
+    trace: false
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: nats.local.dev
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: local-dev-wildcard-tls
+        hosts:
+          - nats.local.dev
+
+natsbox:
+  enabled: true  # Useful debug pod with nats CLI
+  image:
+    tag: "0.14.2"

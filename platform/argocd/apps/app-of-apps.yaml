@@ -1,0 +1,32 @@
+---
+# Root ArgoCD Application — the App-of-Apps
+# Apply this once: kubectl apply -f platform/argocd/apps/app-of-apps.yaml
+# It then manages all other Applications automatically.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: platform-apps
+    app.kubernetes.io/component: platform
+  # Finalizer ensures ArgoCD cleans up child apps when this is deleted
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_ORG/local-platform-engineer
+    path: platform/argocd/apps
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
