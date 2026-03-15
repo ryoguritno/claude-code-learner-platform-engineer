@@ -73,10 +73,8 @@ jobservice:
       cpu: "250m"
       memory: "256Mi"
 
-# Metrics
+# Metrics — enable serviceMonitor only after kube-prometheus-stack CRDs are installed
 metrics:
   enabled: true
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: kube-prometheus-stack
+    enabled: false

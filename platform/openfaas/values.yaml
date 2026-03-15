@@ -3,7 +3,7 @@
 functionNamespace: openfaas-fn
 
 operator:
-  create: true
+  create: false  # Pro feature — use faasnetes instead
 
 gateway:
   replicas: 1
