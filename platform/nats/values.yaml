@@ -37,19 +37,6 @@ nats:
     debug: false
     trace: false
 
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    hosts:
-      - host: nats.local.dev
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: local-dev-wildcard-tls
-        hosts:
-          - nats.local.dev
-
 natsbox:
   enabled: true  # Useful debug pod with nats CLI
   image:

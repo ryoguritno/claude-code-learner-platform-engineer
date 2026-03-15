@@ -1,0 +1,29 @@
+---
+# Standalone Ingress for NATS HTTP monitoring endpoint (port 8222)
+# The nats/nats Helm chart does not support ingress natively —
+# NATS core is TCP (4222), HTTP monitoring is a separate port.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nats-monitoring
+  namespace: nats
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - nats.local.dev
+  rules:
+    - host: nats.local.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nats-headless
+                port:
+                  number: 8222

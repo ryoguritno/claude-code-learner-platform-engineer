@@ -17,20 +17,28 @@ gateway:
     limits:
       memory: "256Mi"
       cpu: "250m"
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-    hosts:
-      - host: openfaas.local.dev
-        serviceName: gateway
-        servicePort: 8080
-        path: /
-    tls:
-      - secretName: local-dev-wildcard-tls
-        hosts:
-          - openfaas.local.dev
+
+# Top-level ingress (chart uses this, not gateway.ingress)
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: openfaas.local.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - openfaas.local.dev
 
 faasnetes:
   imagePullPolicy: "IfNotPresent"

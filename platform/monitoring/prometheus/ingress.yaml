@@ -1,0 +1,29 @@
+---
+# Standalone Ingress for Prometheus UI
+# kube-prometheus-stack is managed via Helm directly (not ArgoCD),
+# so this ingress is applied by 04-install-platform.sh bootstrap script.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: monitoring
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  tls:
+    - secretName: local-dev-wildcard-tls
+      hosts:
+        - prometheus.local.dev
+  rules:
+    - host: prometheus.local.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-stack-prometheus
+                port:
+                  number: 9090

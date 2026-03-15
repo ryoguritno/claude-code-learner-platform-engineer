@@ -30,6 +30,10 @@ if [[ -n "${GITHUB_ORG:-}" ]]; then
         "${REPO_ROOT}/platform/argocd/apps/platform-apps.yaml" 2>/dev/null || true
 fi
 
+echo "→ Applying standalone ingress manifests..."
+kubectl apply -f "${REPO_ROOT}/platform/nats/ingress.yaml" 2>/dev/null || true
+kubectl apply -f "${REPO_ROOT}/platform/monitoring/prometheus/ingress.yaml" 2>/dev/null || true
+
 echo "→ Installing kube-prometheus-stack via Helm (managed outside ArgoCD)..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update 2>/dev/null || true
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
