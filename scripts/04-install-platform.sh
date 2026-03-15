@@ -46,6 +46,26 @@ kubectl apply -f "${REPO_ROOT}/platform/argocd/apps/app-of-apps.yaml"
 echo "→ Waiting for ArgoCD to process App-of-Apps..."
 sleep 10
 
+echo "→ Waiting for ingress-nginx to be ready..."
+kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx --timeout=120s 2>/dev/null || true
+
+echo "→ Patching ingress-nginx admission webhook CA bundle..."
+# The admission-patch Job may not have run correctly in k3d (no cert-manager at bootstrap time).
+# Manually inject the CA from the generated admission secret so webhook TLS validation works.
+for i in $(seq 1 12); do
+    if kubectl get secret ingress-nginx-admission -n ingress-nginx &>/dev/null; then
+        CA=$(kubectl -n ingress-nginx get secret ingress-nginx-admission -o jsonpath="{.data.ca}")
+        if [[ -n "${CA}" ]]; then
+            kubectl patch validatingwebhookconfiguration ingress-nginx-admission \
+                --type='json' \
+                -p "[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\": \"${CA}\"}]" \
+                2>/dev/null && echo "  ✓ Webhook CA patched." && break
+        fi
+    fi
+    echo "  Waiting for ingress-nginx-admission secret... (${i}/12)"
+    sleep 10
+done
+
 echo "→ Watching ArgoCD applications deploy (this takes 5-10 minutes)..."
 echo "   (Ctrl+C to stop watching — installations continue in background)"
 echo ""
