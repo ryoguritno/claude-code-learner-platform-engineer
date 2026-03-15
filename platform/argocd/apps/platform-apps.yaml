@@ -286,7 +286,7 @@ spec:
   sources:
     - repoURL: https://openfaas.github.io/faas-netes
       chart: openfaas
-      targetRevision: "14.2.27"
+      targetRevision: "14.2.136"
       helm:
         valueFiles:
           - $values/platform/openfaas/values.yaml
