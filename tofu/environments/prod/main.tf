@@ -20,6 +20,10 @@ terraform {
       source  = "goharbor/harbor"
       version = "~> 3.10"
     }
+    jetstream = {
+      source  = "nats-io/jetstream"
+      version = "~> 0.0.35"
+    }
   }
 
   # In production, use remote state
@@ -56,15 +60,60 @@ provider "harbor" {
   insecure = true
 }
 
-variable "app_name" { type = string }
-variable "team" { type = string }
-variable "environment" { type = string; default = "prod" }
-variable "vault_token" { type = string; default = "dev-root-token"; sensitive = true }
-variable "minio_password" { type = string; default = "minio-secret-key"; sensitive = true }
-variable "harbor_password" { type = string; default = "Harbor12345"; sensitive = true }
-variable "storage_bucket_name" { type = string; default = "" }
-variable "nats_stream_name" { type = string; default = "" }
-variable "nats_subjects" { type = string; default = "" }
+provider "jetstream" {
+  servers = var.nats_server
+}
+
+variable "app_name" {
+  type = string
+}
+
+variable "team" {
+  type = string
+}
+
+variable "environment" {
+  type    = string
+  default = "prod"
+}
+
+variable "vault_token" {
+  type      = string
+  default   = "dev-root-token"
+  sensitive = true
+}
+
+variable "minio_password" {
+  type      = string
+  default   = "minio-secret-key"
+  sensitive = true
+}
+
+variable "harbor_password" {
+  type      = string
+  default   = "Harbor12345"
+  sensitive = true
+}
+
+variable "storage_bucket_name" {
+  type    = string
+  default = ""
+}
+
+variable "nats_stream_name" {
+  type    = string
+  default = ""
+}
+
+variable "nats_subjects" {
+  type    = string
+  default = ""
+}
+
+variable "nats_server" {
+  type    = string
+  default = "nats://localhost:4222"
+}
 
 module "namespace" {
   source = "../../modules/k8s-namespace"
@@ -87,10 +136,7 @@ module "vault" {
   environments = ["dev", "staging", "prod"]
 }
 
-module "harbor" {
-  source       = "../../modules/harbor-project"
-  project_name = var.team
-}
+# Harbor project is team-scoped — created once by the dev environment, not repeated here
 
 module "storage" {
   count  = var.storage_bucket_name != "" ? 1 : 0

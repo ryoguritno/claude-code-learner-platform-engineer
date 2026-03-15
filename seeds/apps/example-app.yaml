@@ -12,7 +12,8 @@ spec:
   description: "Example application demonstrating the Seeds workflow"
 
   repository:
-    organization: YOUR_GITHUB_ORG
+    # Use your GitHub username (personal account) or GitHub org name — both work
+    organization: YOUR_GITHUB_USERNAME
     visibility: private
     branch_protection: true
     topics:

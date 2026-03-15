@@ -9,6 +9,6 @@ output "policy_name" {
 }
 
 output "role_name" {
-  description = "Vault Kubernetes auth role name"
-  value       = vault_kubernetes_auth_backend_role.app.role_name
+  description = "Vault Kubernetes auth role name (empty string if k8s auth is disabled)"
+  value       = var.enable_k8s_auth ? vault_kubernetes_auth_backend_role.app[0].role_name : ""
 }

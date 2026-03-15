@@ -22,14 +22,6 @@ for ns in harbor vault minio nats monitoring ingress-nginx cert-manager; do
     fi
 done
 
-echo "→ Updating App-of-Apps with GitHub org..."
-# If GITHUB_ORG is set, update the app-of-apps.yaml
-if [[ -n "${GITHUB_ORG:-}" ]]; then
-    sed -i "s/YOUR_GITHUB_ORG/${GITHUB_ORG}/g" \
-        "${REPO_ROOT}/platform/argocd/apps/app-of-apps.yaml" \
-        "${REPO_ROOT}/platform/argocd/apps/platform-apps.yaml" 2>/dev/null || true
-fi
-
 echo "→ Applying standalone ingress manifests..."
 kubectl apply -f "${REPO_ROOT}/platform/nats/ingress.yaml" 2>/dev/null || true
 kubectl apply -f "${REPO_ROOT}/platform/monitoring/prometheus/ingress.yaml" 2>/dev/null || true

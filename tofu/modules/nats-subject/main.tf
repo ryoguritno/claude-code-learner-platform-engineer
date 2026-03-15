@@ -24,11 +24,11 @@ resource "jetstream_stream" "this" {
 resource "jetstream_consumer" "default" {
   for_each = toset(var.consumer_names)
 
-  stream_name    = jetstream_stream.this.name
+  stream_id      = jetstream_stream.this.id
   durable_name   = each.value
   deliver_all    = true
   ack_policy     = "explicit"
-  max_deliver    = 5
+  max_delivery   = 5
   ack_wait       = 30  # seconds
   description    = "Default consumer for ${var.app_name}"
 }

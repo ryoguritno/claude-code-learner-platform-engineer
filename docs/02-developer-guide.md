@@ -4,6 +4,44 @@
 
 The Seeds workflow lets you onboard a new service without touching Kubernetes. You write a YAML file, push it, and the platform creates everything.
 
+## Local Workflow (Personal GitHub Account)
+
+This platform is designed for local learning — you do not need a GitHub Organization.
+A personal GitHub username works everywhere `organization` appears in the seed spec.
+
+### Why not just use GitHub Actions?
+
+The `seeds/.github/workflows/seed-processor.yml` has two jobs:
+- **validate** — runs schema validation in GitHub's cloud ✓ works fine
+- **process** — runs `kubectl apply` against the cluster ✗ GitHub runners
+  can't reach `127.0.0.1` where k3d lives
+
+For local development, use the local runner script instead of the GH Actions path.
+
+### Local end-to-end in 3 steps
+
+**1. Create your seed**
+```bash
+cp seeds/apps/example-app.yaml seeds/apps/my-app.yaml
+# Edit: set name, team, and organization to your GitHub username
+```
+
+**2. Set your GitHub token**
+```bash
+export GITHUB_TOKEN=ghp_...   # PAT: repo + workflow scopes
+```
+
+**3. Run the processor locally**
+```bash
+./scripts/06-process-seed.sh seeds/apps/my-app.yaml
+```
+
+That's it. The script creates the GitHub repo, ArgoCD apps, namespace, and Vault path.
+The GH Actions path (push → PR → merge) described below is how a real org would use
+this — read it to understand the intended design, but use the script above locally.
+
+---
+
 ## The Seed Spec
 
 A seed is a YAML file in `seeds/apps/` that describes your service:

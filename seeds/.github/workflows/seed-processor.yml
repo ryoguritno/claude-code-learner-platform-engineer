@@ -59,6 +59,10 @@ jobs:
           "
           done
 
+  # NOTE FOR LOCAL DEVELOPMENT:
+  # This job requires the k3d cluster to be reachable from GitHub Actions runners
+  # via KUBECONFIG_BASE64. GitHub's cloud runners cannot reach localhost/127.0.0.1.
+  # Run scripts/06-process-seed.sh locally instead.
   process:
     name: Process Seeds
     runs-on: ubuntu-latest

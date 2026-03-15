@@ -1,6 +1,20 @@
-# NATS JetStream Helm values
+# NATS JetStream Helm values (chart: nats-io/nats v1.x)
 
-nats:
+config:
+  cluster:
+    enabled: false  # Single node for local dev
+
+  jetstream:
+    enabled: true
+    memStore:
+      enabled: true
+      size: 1Gi
+    fileStore:
+      enabled: true
+      size: 5Gi
+      storageDirectory: /data
+
+container:
   image:
     tag: "2.10.7-alpine"
 
@@ -12,32 +26,15 @@ nats:
       cpu: "250m"
       memory: "256Mi"
 
-  jetstream:
+promExporter:
+  enabled: true
+  serviceMonitor:
     enabled: true
-    memStorage:
-      enabled: true
-      size: "1Gi"
-    fileStorage:
-      enabled: true
-      size: "5Gi"
-      storageClassName: ""  # Use default storage class
+    additionalLabels:
+      release: kube-prometheus-stack
 
-  cluster:
-    enabled: false  # Single node for local dev; set true for HA
-
-  # Prometheus metrics via NATS Surveyor or built-in
-  exporter:
-    enabled: true
-    serviceMonitor:
-      enabled: true
-      additionalLabels:
-        release: kube-prometheus-stack
-
-  logging:
-    debug: false
-    trace: false
-
-natsbox:
-  enabled: true  # Useful debug pod with nats CLI
-  image:
-    tag: "0.14.2"
+natsBox:
+  enabled: true
+  container:
+    image:
+      tag: "0.14.2"

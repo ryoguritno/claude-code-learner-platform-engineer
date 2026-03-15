@@ -38,8 +38,10 @@ resource "vault_policy" "app" {
   EOT
 }
 
-# Create Kubernetes auth role
+# Create Kubernetes auth role (only when auth/kubernetes is enabled in Vault)
 resource "vault_kubernetes_auth_backend_role" "app" {
+  count = var.enable_k8s_auth ? 1 : 0
+
   backend                          = "kubernetes"
   role_name                        = var.app_name
   bound_service_account_names      = [var.app_name]

@@ -27,7 +27,6 @@ resource "harbor_robot_account" "ci" {
   name        = "${var.project_name}-ci"
   description = "CI/CD robot account for ${var.project_name} — managed by OpenTofu"
   level       = "project"
-  robot_id    = "robot$${var.project_name}-ci"
 
   permissions {
     kind      = "project"
@@ -70,13 +69,13 @@ resource "harbor_robot_account" "ci" {
 
 # Tag retention policy — keep last 10 images per repository
 resource "harbor_retention_policy" "this" {
-  scope    = harbor_project.this.name
+  scope    = harbor_project.this.id
   schedule = "Daily"
 
   rule {
     n_days_since_last_pull = null
-    n_most_recently_pulled = null
-    n_most_recently_pushed = 10
+    most_recently_pulled   = null
+    most_recently_pushed   = 10
     repo_matching          = "**"
     tag_matching           = "**"
     untagged_artifacts     = true

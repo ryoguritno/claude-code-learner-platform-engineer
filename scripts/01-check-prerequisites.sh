@@ -63,6 +63,17 @@ check "kubectl"  "kubectl"
 check "helm"     "helm"
 check "k3d"      "k3d"
 check "mkcert"   "mkcert"
+check_certutil() {
+    if command -v certutil &>/dev/null; then
+        echo "✓ certutil: $(certutil --version 2>/dev/null | head -1)"
+        PASS=$((PASS + 1))
+    else
+        echo "✗ certutil: NOT FOUND (required for browser TLS trust)"
+        echo "  Install: sudo apt-get install -y libnss3-tools"
+        FAIL=$((FAIL + 1))
+    fi
+}
+check_certutil
 check "argocd"   "argocd"
 check "vault"    "vault"
 check "python3"  "python3"

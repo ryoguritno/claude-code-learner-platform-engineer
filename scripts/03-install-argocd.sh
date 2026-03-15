@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-ARGOCD_VERSION="${ARGOCD_CHART_VERSION:-5.51.0}"
+ARGOCD_VERSION="${ARGOCD_CHART_VERSION:-5.51.3}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 

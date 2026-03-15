@@ -48,6 +48,12 @@ def validate_seed(seed: dict, schema: dict) -> None:
     logger.info("Seed validation passed")
 
 
+def _tofu_binary() -> str:
+    """Return 'tofu' if available, fall back to 'terraform'."""
+    import shutil
+    return "tofu" if shutil.which("tofu") else "terraform"
+
+
 def run_tofu(seed: dict, env: str) -> None:
     """Run tofu apply for the given seed and environment."""
     app_name = seed["spec"]["name"]
@@ -58,8 +64,19 @@ def run_tofu(seed: dict, env: str) -> None:
         logger.warning("Tofu environment directory not found: %s", tofu_env_dir)
         return
 
+    binary = _tofu_binary()
+
+    # Init first (idempotent — safe to re-run)
+    init_result = subprocess.run(
+        [binary, "init", "-input=false"],
+        cwd=tofu_env_dir, capture_output=True, text=True
+    )
+    if init_result.returncode != 0:
+        logger.error("%s init failed:\n%s", binary, init_result.stderr)
+        raise RuntimeError(f"{binary} init failed for {app_name} in {env}")
+
     cmd = [
-        "tofu", "apply",
+        binary, "apply",
         "-auto-approve",
         f"-var=app_name={app_name}",
         f"-var=team={team}",
@@ -76,7 +93,7 @@ def run_tofu(seed: dict, env: str) -> None:
         subjects = ",".join(seed["spec"]["messaging"]["subjects"])
         cmd += [f"-var=nats_stream_name={stream}", f"-var=nats_subjects={subjects}"]
 
-    logger.info("Running tofu for environment %s: %s", env, " ".join(cmd))
+    logger.info("Running %s for environment %s: %s", binary, env, " ".join(cmd))
     result = subprocess.run(cmd, cwd=tofu_env_dir, capture_output=True, text=True)
 
     if result.returncode != 0:

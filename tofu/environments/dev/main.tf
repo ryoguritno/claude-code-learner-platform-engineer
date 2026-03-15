@@ -19,6 +19,10 @@ terraform {
       source  = "goharbor/harbor"
       version = "~> 3.10"
     }
+    jetstream = {
+      source  = "nats-io/jetstream"
+      version = "~> 0.0.35"
+    }
   }
 }
 
@@ -28,8 +32,8 @@ provider "kubernetes" {
 }
 
 provider "vault" {
-  address = "https://vault.local.dev"
-  token   = var.vault_token
+  address         = "https://vault.local.dev"
+  token           = var.vault_token
   skip_tls_verify = true
 }
 
@@ -46,6 +50,10 @@ provider "harbor" {
   username = "admin"
   password = var.harbor_password
   insecure = true
+}
+
+provider "jetstream" {
+  servers = var.nats_server
 }
 
 # Variables passed from seed processor
@@ -102,6 +110,12 @@ variable "nats_subjects" {
   description = "Comma-separated NATS subjects"
   type        = string
   default     = ""
+}
+
+variable "nats_server" {
+  description = "NATS server URL (use localhost:4222 with kubectl port-forward for local dev)"
+  type        = string
+  default     = "nats://localhost:4222"
 }
 
 # Create Kubernetes namespace

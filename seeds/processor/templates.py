@@ -110,11 +110,13 @@ def create_github_repo(seed: dict, github_token: str) -> Optional[str]:
 
     gh = Github(github_token)
 
-    # Get org or user
+    # Get org or user.
+    # gh.get_user(name) returns NamedUser which lacks create_repo.
+    # gh.get_user() with no argument returns AuthenticatedUser which has it.
     try:
         owner = gh.get_organization(org_name)
     except GithubException:
-        owner = gh.get_user(org_name)
+        owner = gh.get_user()
 
     # Check if repo already exists
     try:
@@ -163,7 +165,7 @@ def create_github_repo(seed: dict, github_token: str) -> Optional[str]:
                 required_approving_review_count=1,
                 dismiss_stale_reviews=True,
                 require_code_owner_reviews=False,
-                required_status_checks=["ci / build-and-scan"],
+                contexts=["ci / build-and-scan"],
                 enforce_admins=False,
             )
             logger.info("Branch protection enabled for main")
