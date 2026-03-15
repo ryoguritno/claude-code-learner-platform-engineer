@@ -65,6 +65,9 @@ controller:
       memory: "1Gi"
 
 repoServer:
+  env:
+    - name: ARGOCD_EXEC_TIMEOUT
+      value: "10m"
   resources:
     requests:
       cpu: "100m"
