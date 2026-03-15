@@ -39,12 +39,10 @@ resources:
     memory: "1Gi"
     cpu: "1000m"
 
-# Prometheus metrics
+# Prometheus metrics — enable only after kube-prometheus-stack CRDs are installed
 metrics:
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: kube-prometheus-stack
+    enabled: false
 
 # Default buckets created on startup
 defaultBuckets: "platform-artifacts"
