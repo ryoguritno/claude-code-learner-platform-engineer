@@ -1,4 +1,4 @@
-# NATS JetStream Helm values (chart: nats-io/nats v1.x)
+# NATS JetStream Helm values (chart: nats-io/nats v1.1.5)
 
 config:
   cluster:
@@ -6,18 +6,20 @@ config:
 
   jetstream:
     enabled: true
-    memStore:
-      enabled: true
-      size: 1Gi
+
     fileStore:
       enabled: true
-      size: 5Gi
-      storageDirectory: /data
+      pvc:
+        enabled: true
+        size: 5Gi
+
+    memoryStore:
+      enabled: true
+      maxSize: 1Gi
 
 container:
   image:
     tag: "2.10.7-alpine"
-
   resources:
     requests:
       cpu: "50m"
