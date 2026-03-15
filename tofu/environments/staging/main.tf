@@ -145,5 +145,6 @@ module "messaging" {
 
   stream_name = "${var.nats_stream_name}_STAGING"
   app_name    = var.app_name
-  subjects    = var.nats_subjects != "" ? split(",", var.nats_subjects) : []
+  # Prefix subjects with "staging." to avoid NATS subject overlap with dev stream
+  subjects    = var.nats_subjects != "" ? [for s in split(",", var.nats_subjects) : "staging.${s}"] : []
 }

@@ -36,9 +36,9 @@ variable "max_bytes" {
 }
 
 variable "max_age_seconds" {
-  description = "Maximum age of messages in seconds (7 days default)"
+  description = "Maximum age of messages in seconds (0 = unlimited)"
   type        = number
-  default     = 604800
+  default     = 0
 }
 
 variable "replicas" {

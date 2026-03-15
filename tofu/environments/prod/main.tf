@@ -151,8 +151,9 @@ module "messaging" {
   count  = var.nats_stream_name != "" ? 1 : 0
   source = "../../modules/nats-subject"
 
-  stream_name     = "${var.nats_stream_name}_PROD"
-  app_name        = var.app_name
-  subjects        = var.nats_subjects != "" ? split(",", var.nats_subjects) : []
-  max_age_seconds = 2592000  # 30 days retention for prod
+  stream_name = "${var.nats_stream_name}_PROD"
+  app_name    = var.app_name
+  # Prefix subjects with "prod." to avoid NATS subject overlap with dev/staging streams
+  subjects    = var.nats_subjects != "" ? [for s in split(",", var.nats_subjects) : "prod.${s}"] : []
+  # max_age_seconds left at default (0 = unlimited) — large nanosecond values overflow the provider
 }
